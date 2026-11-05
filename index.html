@@ -34,7 +34,44 @@ function rsi(a,n=14){if(a.length<n+1)return null;let up=0,dn=0;for(let i=a.lengt
 function macd(a){if(a.length<35)return null;let fast= a.slice(-60),e12=ema(fast,12),e26=ema(fast,26);return e12-e26}
 function draw(){let c=$('chart'),x=c.getContext('2d'),w=c.width,h=c.height;x.clearRect(0,0,w,h);if(candles.length<2)return;let vals=candles.map(v=>v[4]),lo=Math.min(...vals),hi=Math.max(...vals),pad=(hi-lo)*.12||1;x.strokeStyle='#263750';x.lineWidth=1;for(let i=1;i<4;i++){let y=h*i/4;x.beginPath();x.moveTo(0,y);x.lineTo(w,y);x.stroke()}x.beginPath();vals.forEach((v,i)=>{let px=i*w/(vals.length-1),py=h-((v-(lo-pad))/(hi-lo+2*pad))*h;i?x.lineTo(px,py):x.moveTo(px,py)});x.strokeStyle='#58b7ff';x.lineWidth=3;x.stroke()}
 function analyze(){let a=closes,rv=rsi(a),m=macd(a),e9=ema(a.slice(-60),9),e21=ema(a.slice(-60),21);$('rsi').textContent=rv===null?'—':rv.toFixed(1);$('macd').textContent=m===null?'—':m.toFixed(2);$('ema').textContent=a.length<30?'—':e9.toFixed(0)+' / '+e21.toFixed(0);let bullish=rv!==null&&m!==null&&a.at(-1)>e9&&e9>e21&&rv>55;let bearish=rv!==null&&m!==null&&a.at(-1)<e9&&e9<e21&&rv<45;let s=bullish?'POSIBLE YES':bearish?'POSIBLE NO':'ESPERAR';$('signal').textContent=s;$('signal').className='signal '+(bullish?'yes':bearish?'no':'wait');$('reason').textContent=bullish?'EMA alineadas, RSI fuerte y MACD positivo. Confirma precio y reglas del contrato.':bearish?'EMA bajistas, RSI débil y MACD negativo. Confirma precio y reglas del contrato.':'No coinciden todas las condiciones; evita forzar una entrada.'}
-async function loadBTC(){try{let r=await fetch('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=5m&limit=100');if(!r.ok)throw Error('HTTP '+r.status);let j=await r.json();candles=j;closes=j.map(v=>+v[4]);let p=closes.at(-1),prev=+j.at(-2)[4],pct=(p-prev)/prev*100;$('price').textContent='$'+p.toLocaleString('en-US',{maximumFractionDigits:2});$('change').textContent=(pct>=0?'+':'')+pct.toFixed(3)+'% en la última vela';$('updated').textContent='Actualizado '+new Date().toLocaleTimeString();draw();analyze();$('status').textContent='● DATOS BTC OK';$('status').style.color='var(--green)'}catch(e){$('status').textContent='● ERROR DE DATOS';$('status').style.color='var(--red)';log('No se pudo cargar BTC: '+e.message+' (posible bloqueo de red/CORS).')}}
+async function loadBTC(){
+  try {
+    let r = await fetch('/api/btc-candles');
+    if(!r.ok) throw Error('HTTP '+r.status);
+
+    let j = await r.json();
+
+    candles = j.map(v => [
+      v[0],
+      v[1],
+      v[2],
+      v[3],
+      v[4],
+      v[5]
+    ]);
+
+    closes = candles.map(v => +v[4]);
+
+    let p = closes.at(-1);
+    let prev = closes.at(-2);
+    let pct = (p-prev)/prev*100;
+
+    $('price').textContent = '$'+p.toLocaleString('en-US',{maximumFractionDigits:2});
+    $('change').textContent = (pct>=0?'+':'')+pct.toFixed(3)+'% en la última vela';
+    $('updated').textContent = 'Actualizado '+new Date().toLocaleTimeString();
+
+    draw();
+    analyze();
+
+    $('status').textContent = '● DATOS BTC OK';
+    $('status').style.color = 'var(--green)';
+
+  } catch(e) {
+    $('status').textContent = '● ERROR DE DATOS';
+    $('status').style.color = 'var(--red)';
+    log('Error BTC: '+e.message);
+  }
+}
 async function loadKalshi(){try{let u='https://external-api.kalshi.com/trade-api/v2/markets?series_ticker=KXBTC15M&status=open&limit=10';let r=await fetch(u);if(!r.ok)throw Error('HTTP '+r.status);let j=await r.json(),ms=j.markets||[];$('kalshiStatus').textContent=ms.length?ms.length+' mercados abiertos':'No se encontraron mercados abiertos';$('market').textContent=ms.length?ms.slice(0,3).map(m=>m.title||m.ticker).join(' · '):'Verifica la serie y los mercados activos en Kalshi.';log('Consulta pública de Kalshi completada. Mercados: '+ms.length)}catch(e){$('kalshiStatus').textContent='No disponible';$('market').textContent='No se pudo consultar la API desde este navegador: '+e.message;log('Kalshi no respondió desde el navegador; el panel sigue en modo lectura.')}}
 async function refresh(){await loadBTC();await loadKalshi()}
 $('refresh').addEventListener('click',refresh);refresh();setInterval(loadBTC,60000);setInterval(loadKalshi,180000);
