@@ -76,4 +76,4 @@ async function loadKalshi(){try{let u='https://external-api.kalshi.com/trade-api
 async function refresh(){await loadBTC();await loadKalshi()}
 $('refresh').addEventListener('click',refresh);refresh();setInterval(loadBTC,60000);setInterval(loadKalshi,180000);
 
-}</script></body></html>
+</script></body></html>
