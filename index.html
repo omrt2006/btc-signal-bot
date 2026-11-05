@@ -75,37 +75,5 @@ async function loadBTC(){
 async function loadKalshi(){try{let u='https://external-api.kalshi.com/trade-api/v2/markets?series_ticker=KXBTC15M&status=open&limit=10';let r=await fetch(u);if(!r.ok)throw Error('HTTP '+r.status);let j=await r.json(),ms=j.markets||[];$('kalshiStatus').textContent=ms.length?ms.length+' mercados abiertos':'No se encontraron mercados abiertos';$('market').textContent=ms.length?ms.slice(0,3).map(m=>m.title||m.ticker).join(' · '):'Verifica la serie y los mercados activos en Kalshi.';log('Consulta pública de Kalshi completada. Mercados: '+ms.length)}catch(e){$('kalshiStatus').textContent='No disponible';$('market').textContent='No se pudo consultar la API desde este navegador: '+e.message;log('Kalshi no respondió desde el navegador; el panel sigue en modo lectura.')}}
 async function refresh(){await loadBTC();await loadKalshi()}
 $('refresh').addEventListener('click',refresh);refresh();setInterval(loadBTC,60000);setInterval(loadKalshi,180000);
-async function loadBTC(){
-  try {
-    const r = await fetch('/api/btc-candles');
-    if(!r.ok) throw Error('HTTP '+r.status);
 
-    const j = await r.json();
-    if(!Array.isArray(j) || j.length < 2) {
-      throw Error('Datos BTC incompletos');
-    }
-
-    candles = j;
-    closes = j.map(v => Number(v[4]));
-
-    const p = closes.at(-1);
-    const prev = closes.at(-2);
-    const pct = (p-prev)/prev*100;
-
-    $('price').textContent = '$'+p.toLocaleString('en-US',{maximumFractionDigits:2});
-    $('change').textContent = (pct>=0?'+':'')+pct.toFixed(3)+'% en la última vela';
-    $('updated').textContent = 'Actualizado '+new Date().toLocaleTimeString();
-
-    draw();
-    analyze();
-
-    $('status').textContent = '● DATOS BTC OK';
-    $('status').style.color = 'var(--green)';
-
-  } catch(e) {
-    $('status').textContent = '● ERROR DE DATOS';
-    $('status').style.color = 'var(--red)';
-    log('Error BTC: '+e.message);
-  }
-}
 }</script></body></html>
