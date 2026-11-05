@@ -38,4 +38,20 @@ async function loadBTC(){try{let r=await fetch('https://api.binance.com/api/v3/k
 async function loadKalshi(){try{let u='https://external-api.kalshi.com/trade-api/v2/markets?series_ticker=KXBTC15M&status=open&limit=10';let r=await fetch(u);if(!r.ok)throw Error('HTTP '+r.status);let j=await r.json(),ms=j.markets||[];$('kalshiStatus').textContent=ms.length?ms.length+' mercados abiertos':'No se encontraron mercados abiertos';$('market').textContent=ms.length?ms.slice(0,3).map(m=>m.title||m.ticker).join(' · '):'Verifica la serie y los mercados activos en Kalshi.';log('Consulta pública de Kalshi completada. Mercados: '+ms.length)}catch(e){$('kalshiStatus').textContent='No disponible';$('market').textContent='No se pudo consultar la API desde este navegador: '+e.message;log('Kalshi no respondió desde el navegador; el panel sigue en modo lectura.')}}
 async function refresh(){await loadBTC();await loadKalshi()}
 $('refresh').addEventListener('click',refresh);refresh();setInterval(loadBTC,60000);setInterval(loadKalshi,180000);
-</script></body></html>
+async function loadBTC() {
+  try {
+    const response = await fetch('/api/btc');
+    if (!response.ok) throw new Error('Error del servidor BTC');
+
+    const data = await response.json();
+
+    if (!data.success) throw new Error('BTC no disponible');
+
+    console.log('BTC actualizado:', data.price);
+
+    return data.price;
+  } catch (error) {
+    console.error('Error BTC:', error);
+    return null;
+  }
+}</script></body></html>
